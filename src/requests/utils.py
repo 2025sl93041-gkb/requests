@@ -986,11 +986,23 @@ def parse_header_links(value: str) -> list[dict[str, str]]:
 
         link: dict[str, str] = {"url": url.strip("<> '\"")}
 
-        for param in params.split(";"):
+        # Split on ';' outside double-quoted strings, then parse each key=value pair.
+        in_quotes = False
+        param_start = 0
+        param_ranges: list[str] = []
+        for i, ch in enumerate(params):
+            if ch == '"':
+                in_quotes = not in_quotes
+            elif ch == ";" and not in_quotes:
+                param_ranges.append(params[param_start:i])
+                param_start = i + 1
+        param_ranges.append(params[param_start:])
+
+        for param in param_ranges:
             try:
-                key, value = param.split("=")
+                key, value = param.split("=", 1)
             except ValueError:
-                break
+                continue
 
             link[key.strip(replace_chars)] = value.strip(replace_chars)
 
